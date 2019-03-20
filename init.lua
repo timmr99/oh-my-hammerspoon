@@ -20,12 +20,13 @@
 
 
 local windowLayout = {
-   ["iTerm2"]            = {  ["geometery"] = { x =     0.0, y = 1289.0, w = 1440.0, h = 1251.0}, } ,
-   ["Emacs"]             = {  ["geometery"] = { x =     0.0, y =   23.0, w = 1434.0, h = 1258.0}, } ,
-   ["Evernote"]          = {  ["geometery"] = { x =  1440.0, y = 1683.0, w = 1440.0, h =  873.0}, } ,
-   ["Google Chrome"]     = {  ["geometery"] = { x = -1440.0, y =   23.0, w = 1440.0, h = 1238.0}, } ,
-   ["Microsoft Outlook"] = {  ["geometery"] = { x = -1435.0, y = 1262.0, w = 1435.0, h =  650.0}, } ,
-   ["HipChat"]           = {  ["geometery"] = { x = -1438.0, y = 1915.0, w = 1440.0, h =  642.0}  } ,
+   ["Emacs"]              = { ["geometery"] = { x =  1280.0, y =    23.0, w =  1280.0, h =  1412.0}, } ,
+   ["Evernote"]           = { ["geometery"] = { x =  2560.0, y =   345.0, w =  1440.0, h =   877.0}, } ,
+   ["Google Chrome"]      = { ["geometery"] = { x = -1280.0, y =    23.0, w =  1280.0, h =  1417.0}, } ,
+   ["HipChat"]            = { ["geometery"] = { x = -2560.0, y =   990.0, w =  1279.0, h =   450.0}, } ,
+   ["Microsoft Outlook"]  = { ["geometery"] = { x =  2560.0, y =   345.0, w =  1440.0, h =   877.0}, } ,
+   ["Slack"]              = { ["geometery"] = { x = -2560.0, y =    23.0, w =  1279.0, h =   966.0}, } ,
+   ["iTerm2"]             = { ["geometery"] = { x =    -0.0, y =    23.0, w =  1277.0, h =  1417.0}, } 
 }
 
 
@@ -46,9 +47,13 @@ local hyperShift  = {'ctrl', 'alt', 'cmd', 'shift'}
 hs.window.animationDuration = 0
 
 -- cli
-if not hs.ipc.cliStatus() then hs.ipc.cliInstall() end
+-- if not hs.ipc.cliStatus() then hs.ipc.cliInstall() end
 
 -- App launched
+local function isempty(s)
+   return s == nil or s == ''
+end
+
 function setAppFrame( appName )
    hs.alert.show(appName)
    print("[************************************************************")
@@ -56,9 +61,17 @@ function setAppFrame( appName )
    if hs.application.launchOrFocus(appName) then
       local app = hs.application.find(appName)
       print(app)
-      app:mainWindow():setFrame(windowLayout[appName].geometery)
-      print('x:', windowLayout[appName].geometery.x,' y:', windowLayout[appName].geometery.y, ' w:', windowLayout[appName].geometery.w,' h:', windowLayout[appName].geometery.h)
-      app:mainWindow():focus()
+      if app == "Emacs" then
+         hs.timer.usleep(3000)
+      end
+      if not windowLayout[appName].geometery then
+         app:mainWindow():setFrame(windowLayout[appName].geometery)
+         print('x:', windowLayout[appName].geometery.x,
+               ' y:', windowLayout[appName].geometery.y,
+               ' w:', windowLayout[appName].geometery.w,
+               ' h:', windowLayout[appName].geometery.h)
+         app:mainWindow():focus()
+      end
    else
       hs.alert.show("Failed to launch " .. appName)
    end
@@ -72,19 +85,14 @@ local keyApp = {
    E = 'Emacs',
    H = 'HipChat', 
    O = 'Microsoft Outlook',
+   S = 'Slack',   
    T = 'iTerm2', 
-   Z = 'Evernote', 
-   ---- cutting line ----
-   f = 'Finder',
-   s = 'Safari'
+   Z = 'Evernote',
 }
+
 for key, app in pairs(keyApp) do
    print("****************************************\n",key,app,"\n****************************************")
-   if key == string.upper(key) then
-      hs.hotkey.bind(prefixShift, key, function() setAppFrame(app) end)
-   else
-      hs.hotkey.bind(prefix, key, function() setAppFrame(app) end)
-   end
+   hs.hotkey.bind(prefixShift, key, function() setAppFrame(app) end)
 end
 
 -- Hints
@@ -133,7 +141,7 @@ end)
 local undo = require 'undo'
 hs.hotkey.bind(hyper, 'z', function() undo:undo() end)
 
--- Grids
+-- -- Grids
 hs.grid.GRIDWIDTH = 16
 hs.grid.GRIDHEIGHT = 8
 hs.grid.MARGINX = 0
@@ -517,10 +525,10 @@ function didBecomeActive()
    print("*sessionDidBecomeActive")
    currentTime = hs.timer.secondsSinceEpoch()
    delta = currentTime - secondsSinceEpoch
-   if delta > 60 then
+   if delta > 3600 then
+      print("Hours: " .. delta/3600)
+   elseif delta > 60 then
       print("Minutes: " .. delta/60)
-   elseif delta > 3600 then
-      print("Minutes: " .. delta/3600)
    else
       print("Seconds: " .. delta )
    end
@@ -538,11 +546,11 @@ function eventOccurred(event)
    elseif event == hs.caffeinate.watcher.screensaverDidStop       then print("screensaverDidStop")
    elseif event == hs.caffeinate.watcher.screensaverWillStop      then print("screensaverWillStop")
    elseif event == hs.caffeinate.watcher.screensDidLock           then print("screensDidLock")
-   elseif event == hs.caffeinate.watcher.screensDidSleep          then print("screensDidSleep")
+   elseif event == hs.caffeinate.watcher.screensDidSleep          then didResign()
    elseif event == hs.caffeinate.watcher.screensDidUnlock         then print("screensDidUnlock")
-   elseif event == hs.caffeinate.watcher.screensDidWake           then print("screensDidWake")
-   elseif event == hs.caffeinate.watcher.sessionDidBecomeActive   then didBecomeActive()
-   elseif event == hs.caffeinate.watcher.sessionDidResignActive   then didResign()
+   elseif event == hs.caffeinate.watcher.screensDidWake           then didBecomeActive()
+   elseif event == hs.caffeinate.watcher.sessionDidBecomeActive   then print("sessionDidBecomeActive")
+   elseif event == hs.caffeinate.watcher.sessionDidResignActive   then print("sessionDidResignActive")
    elseif event == hs.caffeinate.watcher.systemDidWake            then print("systemDidWake")
    elseif event == hs.caffeinate.watcher.systemWillPowerOff       then print("systemWillPowerOff")
    elseif event == hs.caffeinate.watcher.systemWillSleep          then print("systemWillSleep")
@@ -562,6 +570,14 @@ hs.hotkey.bind({"cmd","alt","ctrl","shift"},"f12",function()
          print(w:frame())
       end
 end)
+
+hs.hotkey.bind({"cmd","alt","ctrl","shift"},"f11",function()
+      print("****************************************\nLaunch All\n****************************************\n")
+      for name,other in pairs(windowLayout) do
+         setAppFrame(name)
+      end
+end)
+
 
 
 hs.alert('Hammerspoon', 0.6)
